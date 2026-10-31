@@ -1,11 +1,11 @@
 {
- "name": "Le mie carte",
- "short_name": "Carte",
+ "name": "Bip · Le mie carte",
+ "short_name": "Bip",
  "start_url": "./",
  "scope": "./",
  "display": "standalone",
  "background_color": "#EDF0F2",
- "theme_color": "#EDF0F2",
+ "theme_color": "#0B6E4F",
  "lang": "it",
  "icons": [
   {
@@ -23,6 +23,24 @@
    "sizes": "512x512",
    "type": "image/png",
    "purpose": "maskable"
+  },
+  {
+   "src": "icon.svg",
+   "sizes": "any",
+   "type": "image/svg+xml"
+  }
+ ],
+ "description": "Le tue carte fedeltà sempre pronte alla cassa",
+ "shortcuts": [
+  {
+   "name": "Aggiungi una carta",
+   "url": "./#aggiungi",
+   "icons": [
+    {
+     "src": "icon-192.png",
+     "sizes": "192x192"
+    }
+   ]
   }
  ]
 }

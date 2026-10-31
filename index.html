@@ -5,9 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#EDF0F2" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#101418" media="(prefers-color-scheme: dark)">
-<title>Le mie carte</title>
+<title>Bip · Le mie carte</title>
+<meta name="description" content="Bip: le tue carte fedeltà sempre pronte alla cassa.">
+<meta name="apple-mobile-web-app-title" content="Bip">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon-192.png">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -149,6 +151,7 @@ details.avanzate summary{font-weight:700;color:var(--azione);min-height:48px;dis
 .cassa .codice.qr svg{max-width:300px}
 .cassa .cifre{color:#111;margin:0}
 .cassa .nota{font-size:18px;color:#333;text-align:center;max-width:540px;white-space:pre-wrap}
+.cassa .alterna{min-height:52px;padding:0 18px;border-radius:999px;border:2px solid #D3DAE0;background:#fff;color:#0B6E4F;font-weight:700;font-size:17px}
 .cassa .consiglio{font-size:16px;color:#55606B;text-align:center}
 .cassa .giu{padding:10px 18px calc(16px + var(--sb))}
 .cassa .giu .btn{max-width:684px;margin:0 auto;background:#17212B;border-color:#17212B;color:#fff;min-height:66px;font-size:21px}
@@ -434,7 +437,7 @@ function ini(t,c,col){ t.style.background=col||hashColor(c.name); const sp=docum
 function eanOk(s){if(!/^\d+$/.test(s))return false;let sum=0;const d=s.slice(0,-1),n=d.length;for(let i=0;i<n;i++)sum+=+d[n-1-i]*(i%2===0?3:1);return (10-sum%10)%10===+s.slice(-1);}
 function formatoAuto(v){v=String(v).trim();
   if(/^\d{13}$/.test(v)&&eanOk(v))return"EAN13"; if(/^\d{8}$/.test(v)&&eanOk(v))return"EAN8"; if(/^\d{12}$/.test(v)&&eanOk(v))return"UPC";
-  if(v.length>40||/[^\x20-\x7E]/.test(v))return"QR"; return"CODE128";}
+  if(v.length>40||/[^\x20-\x7E]/.test(v)||/[a-z#]/.test(v))return"QR"; return"CODE128";}
 const formato=c=>c.format&&c.format!=="auto"?c.format:formatoAuto(c.number);
 function disegna(valore,fmt,alto=120){
   valore=String(valore).trim(); if(!valore) return null;
@@ -512,8 +515,9 @@ $("invitoNo").onclick=()=>{ pref.invitoVisto=true; salvaPref(); disegnaHome(); t
 let mostrata=null, wake=null;
 async function mostra(id){
   const c=carte[id]; if(!c) return; mostrata=id;
+  try{ const de=document.documentElement; if(!document.fullscreenElement&&de.requestFullscreen) de.requestFullscreen({navigationUI:"hide"}).catch(()=>{}); }catch(e){}
   dipingiCassa(c);
-  apri("cassa",()=>{ mostrata=null; try{wake&&wake.release();}catch(e){} wake=null; disegnaHome(); });
+  apri("cassa",()=>{ mostrata=null; try{wake&&wake.release();}catch(e){} wake=null; try{ if(document.fullscreenElement) document.exitFullscreen().catch(()=>{}); }catch(e){} disegnaHome(); });
   try{ if(navigator.wakeLock) wake=await navigator.wakeLock.request("screen"); }catch(e){}
   carte[id]={...c,uses:(c.uses||0)+1,lastUsed:Date.now(),hist:[...(c.hist||[]),Date.now()].slice(-40),places:impara(c)}; salva();
 }
@@ -525,9 +529,16 @@ function dipingiCassa(c){
   const svg=disegnaCarta(c,150); if(svg) box.appendChild(svg);
   const d=document.createElement("div"); d.className="cifre"; d.textContent=cifre(c.number); box.appendChild(d);
   if(c.note){const t=document.createElement("div");t.className="nota";t.textContent=c.note;box.appendChild(t);}
-  const k=document.createElement("div"); k.className="consiglio"; k.textContent="Se il lettore non lo legge, alza la luminosità dello schermo."; box.appendChild(k);
+  const isQR=formato(c)==="QR";
+  const alt=document.createElement("button"); alt.className="alterna"; alt.textContent=isQR?"Non lo legge? Mostra il codice a barre":"Non lo legge? Mostra il QR code";
+  alt.onclick=()=>{ let nuovo="QR"; if(isQR){ nuovo=formatoAuto(c.number); if(nuovo==="QR") nuovo="CODE128"; }
+    carte[c.id]={...carte[c.id],format:nuovo}; salva(); dipingiCassa(carte[c.id]); toast(nuovo==="QR"?"Ora la carta si apre con il QR code":"Ora la carta si apre con il codice a barre"); };
+  box.appendChild(alt);
+  const k=document.createElement("div"); k.className="consiglio"; k.textContent="Alza la luminosità dello schermo se la cassa fa fatica a leggerlo."; box.appendChild(k);
 }
 $("cassaChiudi").onclick=indietro;
+// uscire dallo schermo intero col tasto indietro chiude anche la carta (un solo tocco)
+document.addEventListener("fullscreenchange",()=>{ if(!document.fullscreenElement && mostrata && pila.length && pila[pila.length-1].id==="cassa") indietro(); });
 
 /* ================= AGGIUNTA: 1. negozio ================= */
 let bozza=null;           // {storeId,name,number,format}
@@ -749,6 +760,7 @@ document.addEventListener("visibilitychange",()=>{ if(document.hidden) return; i
 /* ================= avvio ================= */
 carica(); salva(); disegnaHome();
 if(pref.posizione) chiediPosizione(false);
+if(location.hash==="#aggiungi"){ history.replaceState({n:0},"",location.pathname); setTimeout(()=>apriSceltaNegozio("nuova"),100); }
 if("serviceWorker" in navigator && location.protocol==="https:") navigator.serviceWorker.register("sw.js").catch(()=>{});
 })();
 </script>
