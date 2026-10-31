@@ -1,5 +1,5 @@
 // Le mie carte: funziona anche senza internet.
-const VER = "v6-1";
+const VER = "v7-1";
 const SHELL = "carte-" + VER;
 const FILES = [
 "./",
@@ -94,11 +94,17 @@ self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Pr
 self.addEventListener("fetch", e => {
   const req = e.request; if (req.method !== "GET") return;
   const url = new URL(req.url); if (url.origin !== location.origin) return;
+  const salva = (k, r) => { if (r && r.ok && r.type === "basic") { const cp = r.clone(); caches.open(SHELL).then(c => c.put(k, cp)); } return r; };
   // pagina: rete prima (così gli aggiornamenti arrivano), cache se offline
   if (req.mode === "navigate") {
-    e.respondWith(fetch(req).then(r => { const cp = r.clone(); caches.open(SHELL).then(c => c.put("./index.html", cp)); return r; }).catch(() => caches.match("./index.html")));
+    e.respondWith(fetch(req).then(r => salva("./index.html", r)).catch(() => caches.match("./index.html")));
     return;
   }
-  // tutto il resto (anche i file per leggere i buoni, scaricati solo al primo uso): cache prima
-  e.respondWith(caches.match(req, { ignoreSearch: true }).then(hit => hit || fetch(req).then(r => { const cp = r.clone(); caches.open(SHELL).then(c => c.put(req, cp)); return r; })));
+  // il resto: subito dalla cache, e intanto si aggiorna in sottofondo (mai salvare errori)
+  const fisso = /\/(ocr|vendor|fonts)\//.test(url.pathname); // file pesanti che cambiano solo con una nuova versione
+  e.respondWith(caches.match(req, { ignoreSearch: true }).then(hit => {
+    if (hit && fisso) return hit;
+    const rete = fetch(req).then(r => salva(req, r)).catch(() => hit);
+    return hit || rete;
+  }));
 });

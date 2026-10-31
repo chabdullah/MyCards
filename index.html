@@ -2,6 +2,8 @@
 <html lang="it">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self' data: blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#EDF0F2" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#101418" media="(prefers-color-scheme: dark)">
@@ -55,6 +57,9 @@ button{cursor:pointer}
 .cerca input:focus{border-color:var(--azione)}
 .cerca svg{position:absolute;left:16px;top:50%;transform:translateY(-50%);width:24px;height:24px;color:var(--secondario)}
 
+.invito{background:var(--carta);border:2px solid var(--bordo);border-radius:20px;padding:16px;margin-bottom:18px}
+.invito p{margin:0 0 12px;font-weight:700;font-size:18px}
+.invito .row{display:flex;gap:10px;flex-wrap:wrap}.invito .row .btn{flex:1 1 140px;min-height:54px}
 .griglia{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 14px}
 @media (min-width:560px){.griglia{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .voce{border:0;background:none;padding:0;text-align:left;display:flex;flex-direction:column;gap:8px}
@@ -219,6 +224,8 @@ details.avanzate summary{font-weight:700;color:var(--azione);min-height:48px;dis
     <input id="cerca" type="search" placeholder="Cerca un negozio" autocomplete="off" aria-label="Cerca un negozio">
   </div>
   <button class="avviso-buoni hidden" id="avvisoBuoni"></button>
+  <div class="invito hidden" id="invitoCopia"><p>Salva una copia delle tue carte: se cambi o perdi il telefono le ritrovi in un attimo.</p>
+    <div class="row"><button class="btn primario" id="copiaSi">Salva la copia</button><button class="btn" id="copiaNo">Più tardi</button></div></div>
 
   <div class="griglia" id="griglia"></div>
   <div class="vuoto hidden" id="vuoto">
@@ -471,10 +478,27 @@ function chiedi(testo,si){return new Promise(res=>{$("dlgTesto").textContent=tes
 
 /* ================= dati ================= */
 let carte={};
-function carica(){try{const o=JSON.parse(localStorage.getItem(LS)||"{}");if(o&&typeof o==="object")carte=o;}catch(e){}
+let datiRovinati=false;
+function carica(){
+  let raw=null; try{ raw=localStorage.getItem(LS); }catch(e){}
+  if(raw){ try{ const o=JSON.parse(raw); if(o&&typeof o==="object"&&!Array.isArray(o)) carte=pulisciCarte(o); else throw 0; }
+    catch(e){ datiRovinati=true; try{ localStorage.setItem(LS+".rovinato."+Date.now(),raw); }catch(_){} } }
   for(const c of Object.values(carte)){ const s=trovaNegozio(c.name); if(s&&(!c.storeId||(c.storeId!==s.id&&esatto(c.name,s)))) c.storeId=s.id; } }
 function esatto(nome,s){ const n=norm(nome); return norm(s.name)===n||(s.aliases||[]).some(a=>norm(a)===n); }
-function salva(){try{localStorage.setItem(LS,JSON.stringify(carte));return true;}catch(e){toast("Memoria del telefono piena",4000);return false;}}
+// tiene solo campi attesi e di tipo giusto (vale per i dati salvati e per le copie importate)
+const FOTO_OK=/^data:image\/(png|jpe?g|webp);base64,[A-Za-z0-9+/=]+$/;
+const str=(v,max)=>String(v==null?"":v).slice(0,max);
+function pulisciCarta(c,id){ if(!c||typeof c!=="object"||c.number==null||!String(c.number).trim()||!c.name) return null;
+  return {id:str(id||c.id||uid(),40),storeId:c.storeId&&STORE_BY_ID[c.storeId]?c.storeId:null,name:str(c.name,60).trim(),number:str(c.number,200).trim(),
+    format:["auto","EAN13","EAN8","UPC","CODE128","CODE39","ITF","codabar","QR"].includes(c.format)?c.format:"auto",color:/^#[0-9a-fA-F]{6}$/.test(c.color||"")?c.color:"",
+    note:str(c.note,300),photo:typeof c.photo==="string"&&FOTO_OK.test(c.photo)&&c.photo.length<400000?c.photo:"",uses:Math.max(0,Math.min(1e6,+c.uses||0)),
+    lastUsed:Number.isFinite(+c.lastUsed)?+c.lastUsed:0,created:Number.isFinite(+c.created)?+c.created:Date.now()}; }
+function pulisciCarte(o){ const out={}; for(const [k,c] of Object.entries(o)){ const p=pulisciCarta(c,c&&c.id||k); if(p) out[p.id]=p; } return out; }
+function pulisciBuono(b){ if(!b||typeof b!=="object"||!b.cardId) return null;
+  return {id:str(b.id||uid(),40),cardId:str(b.cardId,40),value:str(b.value,30),expires:/^\d{4}-\d{2}-\d{2}$/.test(b.expires||"")?b.expires:"",code:str(b.code,200),
+    format:["auto","EAN13","EAN8","UPC","CODE128","CODE39","ITF","codabar","QR"].includes(b.format)?b.format:"auto",note:str(b.note,200),
+    image:typeof b.image==="string"&&FOTO_OK.test(b.image)&&b.image.length<600000?b.image:"",used:+b.used||0,created:+b.created||Date.now()}; }
+function salva(){ if(datiRovinati) return false; try{localStorage.setItem(LS,JSON.stringify(carte));return true;}catch(e){toast("Memoria del telefono piena",4000);return false;}}
 let pref={ordine:"uso"};
 try{Object.assign(pref,JSON.parse(localStorage.getItem("tessere.pref")||"{}"));}catch(e){}
 function salvaPref(){try{localStorage.setItem("tessere.pref",JSON.stringify(pref));}catch(e){}}
@@ -553,6 +577,8 @@ function disegnaHome(){
   $("cercaBox").classList.toggle("hidden",tot<7);
   const g=$("griglia"); g.innerHTML="";
   dipingiAvvisoBuoni();
+  const mesi3=90*864e5, prima=Math.min(...Object.values(carte).map(c=>c.created||Date.now()));
+  $("invitoCopia").classList.toggle("hidden", !(tot>=3 && !$("cerca").value && Date.now()-prima>14*864e5 && Date.now()-(pref.ultimaCopia||0)>mesi3 && Date.now()-(pref.copiaRimandata||0)>30*864e5));
   const l=ordinate();
   const gruppi=[];
   if(pref.ordine==="az"||$("cerca").value){ gruppi.push(["",l]); }
@@ -571,6 +597,8 @@ function disegnaHome(){
   if(tot && !l.length){ g.innerHTML=`<p style="grid-column:1/-1;color:var(--secondario)">Nessuna carta trovata.</p>`; }
 }
 $("cerca").addEventListener("input",disegnaHome);
+$("copiaSi").onclick=()=>salvaCopia();
+$("copiaNo").onclick=()=>{ pref.copiaRimandata=Date.now(); salvaPref(); disegnaHome(); };
 
 
 /* ================= ALLA CASSA ================= */
@@ -579,8 +607,8 @@ async function mostra(id){
   const c=carte[id]; if(!c) return; mostrata=id;
   try{ const de=document.documentElement; if(!document.fullscreenElement&&de.requestFullscreen) de.requestFullscreen({navigationUI:"hide"}).catch(()=>{}); }catch(e){}
   dipingiCassa(c);
-  apri("cassa",()=>{ mostrata=null; try{wake&&wake.release();}catch(e){} wake=null; try{ if(document.fullscreenElement) document.exitFullscreen().catch(()=>{}); }catch(e){} disegnaHome(); });
-  try{ if(navigator.wakeLock) wake=await navigator.wakeLock.request("screen"); }catch(e){}
+  apri("cassa",()=>{ mostrata=null;  try{wake&&wake.release();}catch(e){} wake=null; try{ if(document.fullscreenElement) document.exitFullscreen().catch(()=>{}); }catch(e){} disegnaHome(); });
+  try{ if(navigator.wakeLock) wake=await navigator.wakeLock.request("screen"); wake.addEventListener("release",()=>{ wake=null; }); }catch(e){}
   carte[id]={...c,uses:(c.uses||0)+1,lastUsed:Date.now()}; salva();
 }
 function dipingiCassa(c){
@@ -732,7 +760,7 @@ $("modSalva").onclick=()=>{
   carte[c.id]=c; if(!salva()) return; indietro(); setTimeout(()=>{ if(mostrata===c.id) dipingiCassa(c); toast("Modifiche salvate"); },60);
 };
 $("modElimina").onclick=async()=>{ const c=carte[inModifica.id]; if(!(await chiedi(`Vuoi eliminare la carta ${c.name}?`,"Sì, elimina"))) return;
-  delete carte[c.id]; salva(); torna(0); setTimeout(()=>{ disegnaHome(); toast("Carta eliminata"); },80); };
+  delete carte[c.id]; salva(); buoni=buoni.filter(b=>b.cardId!==c.id); salvaBuoni(); torna(0); setTimeout(()=>{ disegnaHome(); toast("Carta eliminata"); },80); };
 
 /* ================= ALTRO ================= */
 function dipingiAltro(){
@@ -741,20 +769,22 @@ function dipingiAltro(){
 }
 $("apriAltro").onclick=()=>{ dipingiAltro(); apri("pAltro"); };
 $("optOrdine").onclick=()=>{ pref.ordine=pref.ordine==="az"?"uso":"az"; salvaPref(); dipingiAltro(); disegnaHome(); };
-$("optSalvaCopia").onclick=()=>{
+$("optSalvaCopia").onclick=()=>salvaCopia();
+function salvaCopia(){
   const dati=JSON.stringify({app:"tessere",v:3,cards:Object.values(carte),coupons:buoni},null,1);
   const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([dati],{type:"application/json"})); a.download="carte-"+new Date().toISOString().slice(0,10)+".json";
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); toast("Copia salvata nei download");
-};
+  pref.ultimaCopia=Date.now(); salvaPref(); disegnaHome();
+}
 $("copiaFile").addEventListener("change",async e=>{ const f=e.target.files[0]; e.target.value=""; if(!f) return;
+  if(f.size>20e6){ toast("Questo file è troppo grande per essere una copia delle carte"); return; }
   let o; try{ o=JSON.parse(await f.text()); }catch(err){ toast("Questo file non è una copia delle carte"); return; }
   const l=(Array.isArray(o)?o:(o&&o.cards)||[]).filter(c=>c&&c.name&&c.number!=null);
   if(!l.length){ toast("Nel file non ci sono carte"); return; }
   if(!(await chiedi(`Recuperare ${l.length} carte dalla copia?`,"Sì, recupera"))) return;
-  for(const c of l){ const id=String(c.id||uid()); const s=c.storeId&&STORE_BY_ID[c.storeId]?c.storeId:(trovaNegozio(c.name)||{}).id||null;
-    carte[id]={id,storeId:s,name:String(c.name),number:String(c.number),format:c.format||"auto",color:c.color||"",note:c.note||"",photo:typeof c.photo==="string"&&c.photo.startsWith("data:image/")?c.photo:"",
-      uses:+c.uses||0,lastUsed:+c.lastUsed||0,created:+c.created||Date.now()}; }
-  if(o&&Array.isArray(o.coupons)){ const ids=new Set(buoni.map(b=>b.id)); for(const b of o.coupons) if(b&&b.id&&!ids.has(b.id)&&b.cardId) buoni.push(b); salvaBuoni(); }
+  datiRovinati=false;
+  for(const c of l){ const p=pulisciCarta(c); if(!p) continue; if(!p.storeId){ const st=trovaNegozio(p.name); if(st) p.storeId=st.id; } carte[p.id]=p; }
+  if(o&&Array.isArray(o.coupons)){ const ids=new Set(buoni.map(b=>b.id)); for(const x of o.coupons){ const b=pulisciBuono(x); if(b&&!ids.has(b.id)&&carte[b.cardId]) buoni.push(b); } salvaBuoni(); }
   salva(); torna(0); setTimeout(()=>{ disegnaHome(); toast(`Recuperate ${l.length} carte`); },80);
 });
 
@@ -808,7 +838,11 @@ $("impSalva").onclick=()=>{
 
 /* ================= BUONI ================= */
 let buoni=[];
-function caricaBuoni(){ try{ const a=JSON.parse(localStorage.getItem("tessere.buoni")||"[]"); if(Array.isArray(a)) buoni=a; }catch(e){} }
+function caricaBuoni(){ try{ const a=JSON.parse(localStorage.getItem("tessere.buoni")||"[]"); if(Array.isArray(a)) buoni=a.map(pulisciBuono).filter(Boolean); }catch(e){} }
+function pulisciBuoniVecchi(){ const prima=buoni.length; const ora=Date.now();
+  buoni=buoni.filter(b=>{ if(!carte[b.cardId]) return false; if(b.used) return ora-b.used<30*864e5; if(b.expires&&giorniA(b.expires)< -30) return false; return true; });
+  for(const b of buoni) if((b.used||(b.expires&&giorniA(b.expires)<0))&&b.image) b.image="";
+  salvaBuoni(); }
 function salvaBuoni(){ try{ localStorage.setItem("tessere.buoni",JSON.stringify(buoni)); return true; }catch(e){ toast("Memoria del telefono piena",4000); return false; } }
 const oggiISO=()=>{ const d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10); };
 const giorniA=iso=>{ if(!iso) return Infinity; const a=new Date(oggiISO()+"T00:00:00"), b=new Date(iso+"T00:00:00"); return Math.round((b-a)/864e5); };
@@ -870,7 +904,7 @@ $("buonoFile").addEventListener("change",async e=>{ const f=e.target.files[0]; e
   const w=$("buonoAttesa"); w.classList.remove("hidden"); w.textContent="Leggo il buono…";
   try{
     const [{res,im}, testo] = await Promise.all([ leggiFile(f), ocr(f,p=>{ w.textContent=p; }) ]);
-    if(im){ bozzaBuono.image=ridimensiona(im.img,720,.62); URL.revokeObjectURL(im.url); }
+    if(im){ bozzaBuono.image=ridimensiona(im.img,640,.55); URL.revokeObjectURL(im.url); }
     const info=analizza(testo||"");
     if(res && !carteNumeri().has(String(res.value))){ bozzaBuono.code=String(res.value); bozzaBuono.format=res.format; }
     if(info.value) bozzaBuono.value=info.value; if(info.expires) bozzaBuono.expires=info.expires; if(info.code&&!bozzaBuono.code) bozzaBuono.code=info.code;
@@ -927,7 +961,7 @@ async function ocr(file,progresso){
       ocrW=await Tesseract.createWorker("ita",1,{workerPath:base+"worker.min.js",corePath:base,langPath:base,gzip:true,
         logger:m=>{ if(m.status==="recognizing text") progresso(`Leggo il buono… ${Math.round(m.progress*100)}%`); }}); }
     progresso("Leggo il buono…");
-    const r=await ocrW.recognize(file); return r.data.text||"";
+    const r=await ocrW.recognize(file); clearTimeout(ocr.t); ocr.t=setTimeout(()=>{ try{ ocrW&&ocrW.terminate(); }catch(e){} ocrW=null; },60000); return r.data.text||"";
   }catch(e){ return ""; }
 }
 function analizza(t){
@@ -959,8 +993,14 @@ function analizza(t){
 }
 
 /* ================= avvio ================= */
-document.addEventListener("visibilitychange",()=>{ if(!document.hidden) disegnaHome(); });
-carica(); caricaBuoni(); for(const c of Object.values(carte)){ delete c.places; delete c.hist; } salva(); disegnaHome();
+document.addEventListener("visibilitychange",async()=>{ if(document.hidden) return; disegnaHome();
+  if(mostrata&&!wake){ try{ if(navigator.wakeLock) wake=await navigator.wakeLock.request("screen"); wake.addEventListener("release",()=>{ wake=null; }); }catch(e){} } });
+carica(); caricaBuoni(); if(!datiRovinati) salva(); pulisciBuoniVecchi(); disegnaHome();
+if(datiRovinati) toast("Non riesco a leggere le carte salvate. Recuperale da una copia (Altro).",6000);
+// chiede al telefono di non cancellare i dati dell'app quando manca spazio
+try{ navigator.storage&&navigator.storage.persist&&navigator.storage.persist(); }catch(e){}
+// se l'app è aperta in due schede, restano allineate
+window.addEventListener("storage",e=>{ if(e.key===LS||e.key==="tessere.buoni"){ carte={}; datiRovinati=false; carica(); caricaBuoni(); disegnaHome(); } });
 if(location.hash==="#aggiungi"){ history.replaceState({n:0},"",location.pathname); setTimeout(()=>apriSceltaNegozio("nuova"),100); }
 if("serviceWorker" in navigator && location.protocol==="https:") navigator.serviceWorker.register("sw.js").catch(()=>{});
 })();
