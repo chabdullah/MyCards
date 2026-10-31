@@ -55,17 +55,6 @@ button{cursor:pointer}
 .cerca input:focus{border-color:var(--azione)}
 .cerca svg{position:absolute;left:16px;top:50%;transform:translateY(-50%);width:24px;height:24px;color:var(--secondario)}
 
-/* carta suggerita: l'unico elemento "forte" della home */
-.suggerita{display:flex;align-items:center;gap:16px;width:100%;padding:16px;margin-bottom:22px;border-radius:20px;border:0;text-align:left;background:var(--inchiostro);color:var(--fondo)}
-.suggerita .tile{width:112px;flex:none;box-shadow:none}
-.suggerita .t1{font-size:16px;opacity:.75}
-.suggerita .t2{font-size:24px;font-weight:700;line-height:1.15}
-.suggerita .t3{font-size:16px;margin-top:6px;display:flex;align-items:center;gap:6px;color:var(--fondo);opacity:.9}
-.suggerita .t3 svg{width:18px;height:18px}
-
-.invito{background:var(--evidenza);border-radius:20px;padding:18px;margin-bottom:22px}
-.invito p{margin:0 0 14px;font-weight:700;font-size:19px}
-.invito .row{display:flex;gap:10px;flex-wrap:wrap}.invito .row .btn{flex:1 1 160px;min-height:56px}
 .griglia{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 14px}
 @media (min-width:560px){.griglia{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .voce{border:0;background:none;padding:0;text-align:left;display:flex;flex-direction:column;gap:8px}
@@ -75,6 +64,7 @@ button{cursor:pointer}
 /* il "tile" della carta: logo su fondo bianco, o iniziali su colore */
 .tile{position:relative;width:100%;aspect-ratio:1.586;border-radius:var(--r-tile);background:#fff;display:grid;place-items:center;overflow:hidden;
   box-shadow:inset 0 0 0 1px rgba(23,33,43,.10), 0 2px 6px rgba(23,33,43,.10);transition:transform .1s}
+@media (prefers-color-scheme:dark){.tile{box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.16)}}
 .tile .bollino{position:absolute;right:7px;bottom:7px;background:#FFE27A;color:#17212B;font-size:13px;font-weight:700;line-height:1;padding:5px 8px;border-radius:999px;box-shadow:0 1px 3px rgba(0,0,0,.25)}
 .tile img{max-width:72%;max-height:54%;object-fit:contain}
 .tile.icona img{max-width:56%;max-height:70%;border-radius:14%}
@@ -229,11 +219,7 @@ details.avanzate summary{font-weight:700;color:var(--azione);min-height:48px;dis
     <input id="cerca" type="search" placeholder="Cerca un negozio" autocomplete="off" aria-label="Cerca un negozio">
   </div>
   <button class="avviso-buoni hidden" id="avvisoBuoni"></button>
-  <button class="suggerita hidden" id="suggerita"></button>
-  <div class="invito hidden" id="invitoPos">
-    <p>Vuoi che l'app mostri da sola la carta del negozio in cui ti trovi?</p>
-    <div class="row"><button class="btn primario" id="invitoSi">Sì, usa la posizione</button><button class="btn" id="invitoNo">No, grazie</button></div>
-  </div>
+
   <div class="griglia" id="griglia"></div>
   <div class="vuoto hidden" id="vuoto">
     <h2>Nessuna carta</h2>
@@ -346,9 +332,6 @@ details.avanzate summary{font-weight:700;color:var(--azione);min-height:48px;dis
   <div class="corpo">
     <h2>Altre opzioni</h2>
     <div class="opzioni">
-      <button class="opz" id="optPosizione" role="switch" aria-checked="false">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
-        <div><b>Mostra prima la carta del negozio dove sei</b><span id="optPosTxt">Usa la posizione del telefono</span></div><i class="interruttore"></i></button>
       <button class="opz" id="optBuoni">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/><path d="M14 6v12" stroke-dasharray="2 2.5"/></svg>
         <div><b>Buoni sconto</b><span id="optBuoniTxt">Aggiungi i buoni dei negozi per non dimenticarli</span></div></button>
@@ -490,13 +473,8 @@ function chiedi(testo,si){return new Promise(res=>{$("dlgTesto").textContent=tes
 let carte={};
 function carica(){try{const o=JSON.parse(localStorage.getItem(LS)||"{}");if(o&&typeof o==="object")carte=o;}catch(e){}
   for(const c of Object.values(carte)) if(!c.storeId){ const s=trovaNegozio(c.name); if(s) c.storeId=s.id; } }
-function puliziaLuoghi(){
-  const tutte=Object.values(carte), pts=[]; for(const c of tutte) for(const p of (c.places||[])) pts.push({c:c.id,p});
-  const via=new Set(); for(const a of pts){ const ids=new Set(pts.filter(b=>dist(a.p,b.p)<150).map(b=>b.c)); if(ids.size>=3) via.add(a.p); }
-  if(via.size) for(const c of tutte) c.places=(c.places||[]).filter(p=>!via.has(p));
-}
 function salva(){try{localStorage.setItem(LS,JSON.stringify(carte));return true;}catch(e){toast("Memoria del telefono piena",4000);return false;}}
-let pref={ordine:"uso",posizione:false};
+let pref={ordine:"uso"};
 try{Object.assign(pref,JSON.parse(localStorage.getItem("tessere.pref")||"{}"));}catch(e){}
 function salvaPref(){try{localStorage.setItem("tessere.pref",JSON.stringify(pref));}catch(e){}}
 
@@ -560,19 +538,6 @@ async function leggiFile(file){
 }
 
 /* ================= HOME ================= */
-function punteggioOra(c,now){const h=c.hist||[];if(h.length<2)return 0;const hN=now.getHours()+now.getMinutes()/60,dN=now.getDay(),weN=dN===0||dN===6;let s=0;
-  for(const t of h){const d=new Date(t),age=(now-d)/864e5;if(age<0)continue;let dh=Math.abs(d.getHours()+d.getMinutes()/60-hN);dh=Math.min(dh,24-dh);const day=d.getDay(),we=day===0||day===6;
-    s+=Math.exp(-(dh*dh)/4.5)*(day===dN?1:(we===weN?.5:.2))*Math.exp(-age/120);}return s;}
-function suggerimento(){
-  const lista=Object.values(carte); if(!lista.length) return null;
-  if(pos){ const lim=Math.max(200,Math.min(pos.acc||0,500)); const vicine=[];
-    for(const c of lista){ let peso=0; for(const p of (c.places||[])) if(dist(pos,p)<=lim) peso+=p.n||1; if(peso) vicine.push({c,peso}); }
-    vicine.sort((a,b)=>b.peso-a.peso);
-    // se qui hai usato più carte in modo simile (es. a casa), non indovinare
-    if(vicine.length===1 || (vicine.length>1 && vicine[0].peso>=2*vicine[1].peso && vicine[0].peso>=2)) return {c:vicine[0].c,perche:"vicino"}; }
-  const now=new Date(); let best=null,bs=0; for(const c of lista){const s=punteggioOra(c,now);if(s>bs){bs=s;best=c;}}
-  return bs>=1.2?{c:best,perche:"ora"}:null;
-}
 function ordinate(){
   const q=norm($("cerca").value); let l=Object.values(carte);
   if(q) l=l.filter(c=>norm(c.name).includes(q)||String(c.number).includes(q)||norm(c.note).includes(q));
@@ -587,21 +552,12 @@ function disegnaHome(){
   $("cercaBox").classList.toggle("hidden",tot<7);
   const g=$("griglia"); g.innerHTML="";
   dipingiAvvisoBuoni();
-  const sug=$("cerca").value?null:suggerimento(), sb=$("suggerita");
-  if(sug){ sb.innerHTML=""; sb.appendChild(tile(sug.c)); const tx=document.createElement("div");
-    tx.innerHTML=`<div class="t1"></div><div class="t2"></div><div class="t3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>Tocca per mostrarla</div>`;
-    tx.querySelector(".t1").textContent=sug.perche==="vicino"?"Sei vicino a":"Forse ti serve";
-    tx.querySelector(".t2").textContent=sug.c.name; sb.appendChild(tx); sb.onclick=()=>mostra(sug.c.id); sb.classList.remove("hidden"); }
-  else sb.classList.add("hidden");
-  const usate=Object.values(carte).filter(c=>(c.uses||0)>0).length;
-  $("invitoPos").classList.toggle("hidden", !(tot>=2 && usate>=1 && !pref.posizione && !pref.invitoVisto && window.isSecureContext && navigator.geolocation && !$("cerca").value));
   const l=ordinate();
   for(const c of l) g.appendChild(voce(c,()=>mostra(c.id),true));
   if(tot && !l.length){ g.innerHTML=`<p style="grid-column:1/-1;color:var(--secondario)">Nessuna carta trovata.</p>`; }
 }
 $("cerca").addEventListener("input",disegnaHome);
-$("invitoSi").onclick=()=>{ pref.invitoVisto=true; salvaPref(); chiediPosizione(true); disegnaHome(); };
-$("invitoNo").onclick=()=>{ pref.invitoVisto=true; salvaPref(); disegnaHome(); toast("Puoi attivarla quando vuoi da Altro"); };
+
 
 /* ================= ALLA CASSA ================= */
 let mostrata=null, wake=null, apertaAlle=0;
@@ -609,13 +565,9 @@ async function mostra(id){
   const c=carte[id]; if(!c) return; mostrata=id;
   try{ const de=document.documentElement; if(!document.fullscreenElement&&de.requestFullscreen) de.requestFullscreen({navigationUI:"hide"}).catch(()=>{}); }catch(e){}
   dipingiCassa(c);
-  apri("cassa",()=>{ const idc=mostrata;
-    // il luogo si impara solo se la carta è rimasta aperta abbastanza (alla cassa), non per una sbirciata
-    if(idc&&carte[idc]&&Date.now()-apertaAlle>=8000){ carte[idc]={...carte[idc],places:impara(carte[idc])}; salva(); }
-    mostrata=null; try{wake&&wake.release();}catch(e){} wake=null; try{ if(document.fullscreenElement) document.exitFullscreen().catch(()=>{}); }catch(e){} disegnaHome(); });
+  apri("cassa",()=>{ mostrata=null; try{wake&&wake.release();}catch(e){} wake=null; try{ if(document.fullscreenElement) document.exitFullscreen().catch(()=>{}); }catch(e){} disegnaHome(); });
   try{ if(navigator.wakeLock) wake=await navigator.wakeLock.request("screen"); }catch(e){}
-  apertaAlle=Date.now();
-  carte[id]={...c,uses:(c.uses||0)+1,lastUsed:Date.now(),hist:[...(c.hist||[]),Date.now()].slice(-40)}; salva();
+  carte[id]={...c,uses:(c.uses||0)+1,lastUsed:Date.now()}; salva();
 }
 function dipingiCassa(c){
   const su=$("cassaSu"); su.innerHTML=""; su.appendChild(tile(c));
@@ -739,7 +691,7 @@ function apriConferma(){
   apri("pConferma");
 }
 $("confSalva").onclick=()=>{
-  const c={id:uid(),storeId:bozza.storeId||null,name:bozza.name,number:bozza.number,format:bozza.format||"auto",color:bozza.storeId?"":hashColor(bozza.name),note:"",photo:"",uses:0,lastUsed:0,hist:[],places:[],created:Date.now()};
+  const c={id:uid(),storeId:bozza.storeId||null,name:bozza.name,number:bozza.number,format:bozza.format||"auto",color:bozza.storeId?"":hashColor(bozza.name),note:"",photo:"",uses:0,lastUsed:0,created:Date.now()};
   carte[c.id]=c; if(!salva()) return; bozza=null;
   torna(0); setTimeout(()=>{ disegnaHome(); toast(`Carta ${c.name} salvata`); },80);
 };
@@ -771,13 +723,10 @@ $("modElimina").onclick=async()=>{ const c=carte[inModifica.id]; if(!(await chie
 /* ================= ALTRO ================= */
 function dipingiAltro(){
   const na=attivi().length; $("optBuoniTxt").textContent=na?(na===1?"Hai un buono da usare":`Hai ${na} buoni da usare`):"Aggiungi i buoni dei negozi per non dimenticarli";
-  $("optPosizione").setAttribute("aria-checked",String(!!pref.posizione));
-  $("optPosTxt").textContent=pref.posizione?(pos?"Attiva":"Attiva, in attesa del segnale"):"Usa la posizione del telefono";
   $("optOrdineTxt").textContent=pref.ordine==="az"?"In ordine alfabetico. Tocca per mettere prima le più usate":"Prima le più usate. Tocca per l'ordine alfabetico";
 }
 $("apriAltro").onclick=()=>{ dipingiAltro(); apri("pAltro"); };
 $("optOrdine").onclick=()=>{ pref.ordine=pref.ordine==="az"?"uso":"az"; salvaPref(); dipingiAltro(); disegnaHome(); };
-$("optPosizione").onclick=()=>{ if(pref.posizione){ pref.posizione=false; pos=null; salvaPref(); dipingiAltro(); disegnaHome(); } else chiediPosizione(true); };
 $("optSalvaCopia").onclick=()=>{
   const dati=JSON.stringify({app:"tessere",v:3,cards:Object.values(carte),coupons:buoni},null,1);
   const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([dati],{type:"application/json"})); a.download="carte-"+new Date().toISOString().slice(0,10)+".json";
@@ -790,7 +739,7 @@ $("copiaFile").addEventListener("change",async e=>{ const f=e.target.files[0]; e
   if(!(await chiedi(`Recuperare ${l.length} carte dalla copia?`,"Sì, recupera"))) return;
   for(const c of l){ const id=String(c.id||uid()); const s=c.storeId&&STORE_BY_ID[c.storeId]?c.storeId:(trovaNegozio(c.name)||{}).id||null;
     carte[id]={id,storeId:s,name:String(c.name),number:String(c.number),format:c.format||"auto",color:c.color||"",note:c.note||"",photo:typeof c.photo==="string"&&c.photo.startsWith("data:image/")?c.photo:"",
-      uses:+c.uses||0,lastUsed:+c.lastUsed||0,hist:Array.isArray(c.hist)?c.hist.filter(Number.isFinite).slice(-40):[],places:Array.isArray(c.places)?c.places.filter(p=>p&&Number.isFinite(p.lat)).slice(0,8):[],created:+c.created||Date.now()}; }
+      uses:+c.uses||0,lastUsed:+c.lastUsed||0,created:+c.created||Date.now()}; }
   if(o&&Array.isArray(o.coupons)){ const ids=new Set(buoni.map(b=>b.id)); for(const b of o.coupons) if(b&&b.id&&!ids.has(b.id)&&b.cardId) buoni.push(b); salvaBuoni(); }
   salva(); torna(0); setTimeout(()=>{ disegnaHome(); toast(`Recuperate ${l.length} carte`); },80);
 });
@@ -839,7 +788,7 @@ function rigaImport(it){
 }
 $("impSalva").onclick=()=>{
   const l=importa.filter(x=>x.res&&!x.dup&&x.name);
-  for(const it of l){ carte[it.id]={id:it.id,storeId:it.storeId,name:it.name,number:String(it.res.value),format:it.res.format,color:it.storeId?"":hashColor(it.name),note:"",photo:"",uses:0,lastUsed:0,hist:[],places:[],created:Date.now()}; }
+  for(const it of l){ carte[it.id]={id:it.id,storeId:it.storeId,name:it.name,number:String(it.res.value),format:it.res.format,color:it.storeId?"":hashColor(it.name),note:"",photo:"",uses:0,lastUsed:0,created:Date.now()}; }
   if(!salva()) return; importa=[]; torna(0); setTimeout(()=>{ disegnaHome(); toast(`Salvate ${l.length} carte`); },80);
 };
 
@@ -995,30 +944,9 @@ function analizza(t){
   return out;
 }
 
-/* ================= POSIZIONE ================= */
-let pos=null;
-function dist(a,b){const R=6371e3,t=Math.PI/180,dl=(b.lat-a.lat)*t,dg=(b.lng-a.lng)*t;const h=Math.sin(dl/2)**2+Math.cos(a.lat*t)*Math.cos(b.lat*t)*Math.sin(dg/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
-function chiediPosizione(daUtente){
-  if(!window.isSecureContext||!navigator.geolocation){ if(daUtente) toast("Posizione non disponibile su questo telefono"); return; }
-  navigator.geolocation.getCurrentPosition(p=>{
-    pos={lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy,t:Date.now()};
-    if(!pref.posizione){ pref.posizione=true; salvaPref(); } dipingiAltro(); disegnaHome();
-  },err=>{
-    if(daUtente) toast(err.code===1?"Permesso negato. Tocca il lucchetto accanto all'indirizzo e consenti la posizione":"Non riesco a trovare la posizione. Il GPS è acceso?",4500);
-    if(err.code===1){ pref.posizione=false; salvaPref(); } dipingiAltro();
-  },{enableHighAccuracy:true,timeout:12000,maximumAge:60000});
-}
-function impara(c){
-  if(!pos||Date.now()-pos.t>15*60e3||pos.acc>300) return c.places||[];
-  const pl=(c.places||[]).map(p=>({...p})); let hit=pl.find(p=>dist(pos,p)<250);
-  if(hit){const n=hit.n||1;hit.lat=(hit.lat*n+pos.lat)/(n+1);hit.lng=(hit.lng*n+pos.lng)/(n+1);hit.n=Math.min(n+1,50);} else pl.push({lat:pos.lat,lng:pos.lng,n:1});
-  return pl.sort((a,b)=>b.n-a.n).slice(0,8);
-}
-document.addEventListener("visibilitychange",()=>{ if(document.hidden) return; if(pref.posizione) chiediPosizione(false); disegnaHome(); });
-
 /* ================= avvio ================= */
-carica(); caricaBuoni(); puliziaLuoghi(); salva(); disegnaHome();
-if(pref.posizione) chiediPosizione(false);
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden) disegnaHome(); });
+carica(); caricaBuoni(); for(const c of Object.values(carte)){ delete c.places; delete c.hist; } salva(); disegnaHome();
 if(location.hash==="#aggiungi"){ history.replaceState({n:0},"",location.pathname); setTimeout(()=>apriSceltaNegozio("nuova"),100); }
 if("serviceWorker" in navigator && location.protocol==="https:") navigator.serviceWorker.register("sw.js").catch(()=>{});
 })();
