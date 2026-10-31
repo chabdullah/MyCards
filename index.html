@@ -472,7 +472,8 @@ function chiedi(testo,si){return new Promise(res=>{$("dlgTesto").textContent=tes
 /* ================= dati ================= */
 let carte={};
 function carica(){try{const o=JSON.parse(localStorage.getItem(LS)||"{}");if(o&&typeof o==="object")carte=o;}catch(e){}
-  for(const c of Object.values(carte)) if(!c.storeId){ const s=trovaNegozio(c.name); if(s) c.storeId=s.id; } }
+  for(const c of Object.values(carte)){ const s=trovaNegozio(c.name); if(s&&(!c.storeId||(c.storeId!==s.id&&esatto(c.name,s)))) c.storeId=s.id; } }
+function esatto(nome,s){ const n=norm(nome); return norm(s.name)===n||(s.aliases||[]).some(a=>norm(a)===n); }
 function salva(){try{localStorage.setItem(LS,JSON.stringify(carte));return true;}catch(e){toast("Memoria del telefono piena",4000);return false;}}
 let pref={ordine:"uso"};
 try{Object.assign(pref,JSON.parse(localStorage.getItem("tessere.pref")||"{}"));}catch(e){}
@@ -553,7 +554,20 @@ function disegnaHome(){
   const g=$("griglia"); g.innerHTML="";
   dipingiAvvisoBuoni();
   const l=ordinate();
-  for(const c of l) g.appendChild(voce(c,()=>mostra(c.id),true));
+  const gruppi=[];
+  if(pref.ordine==="az"||$("cerca").value){ gruppi.push(["",l]); }
+  else {
+    const top=l.filter(c=>(c.uses||0)>0).slice(0,4), visti=new Set(top.map(c=>c.id));
+    const conBuono=l.filter(c=>!visti.has(c.id)&&attivi(c.id).length).sort((a,b)=>giorniA(attivi(a.id)[0].expires)-giorniA(attivi(b.id)[0].expires));
+    conBuono.forEach(c=>visti.add(c.id));
+    const altre=l.filter(c=>!visti.has(c.id));
+    gruppi.push(["Le più usate",top],["Con un buono da usare",conBuono],["Le altre carte",altre]);
+  }
+  const pieni=gruppi.filter(x=>x[1].length);
+  for(const [tit,lista] of pieni){
+    if(tit&&pieni.length>1){ const h=document.createElement("div"); h.className="gruppo"; h.style.gridColumn="1/-1"; h.style.margin=g.children.length?"10px 2px 0":"0 2px"; h.textContent=tit; g.appendChild(h); }
+    for(const c of lista) g.appendChild(voce(c,()=>mostra(c.id),true));
+  }
   if(tot && !l.length){ g.innerHTML=`<p style="grid-column:1/-1;color:var(--secondario)">Nessuna carta trovata.</p>`; }
 }
 $("cerca").addEventListener("input",disegnaHome);
