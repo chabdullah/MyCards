@@ -74,7 +74,8 @@ button{cursor:pointer}
 
 /* il "tile" della carta: logo su fondo bianco, o iniziali su colore */
 .tile{position:relative;width:100%;aspect-ratio:1.586;border-radius:var(--r-tile);background:#fff;display:grid;place-items:center;overflow:hidden;
-  box-shadow:0 0 0 1px rgba(23,33,43,.10), 0 2px 6px rgba(23,33,43,.08);transition:transform .1s}
+  box-shadow:inset 0 0 0 1px rgba(23,33,43,.10), 0 2px 6px rgba(23,33,43,.10);transition:transform .1s}
+.tile .bollino{position:absolute;right:7px;bottom:7px;background:#FFE27A;color:#17212B;font-size:13px;font-weight:700;line-height:1;padding:5px 8px;border-radius:999px;box-shadow:0 1px 3px rgba(0,0,0,.25)}
 .tile img{max-width:72%;max-height:54%;object-fit:contain}
 .tile.icona img{max-width:56%;max-height:70%;border-radius:14%}
 .tile .ini{font-weight:700;font-size:clamp(26px,9vw,40px);color:#fff;letter-spacing:.02em}
@@ -146,7 +147,7 @@ details.avanzate summary{font-weight:700;color:var(--azione);min-height:48px;dis
 .cassa .su .tile{width:96px;flex:none}
 .cassa .su .n{flex:1;font-size:24px;font-weight:700;line-height:1.15}
 .cassa .mod{min-height:48px;padding:0 14px;border-radius:999px;border:2px solid #D3DAE0;background:#fff;color:#0B6E4F;font-weight:700;font-size:17px}
-.cassa .codice{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:12px 16px}
+.cassa .codice{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:safe center;gap:14px;padding:12px 16px;overflow:auto;min-height:0}
 .cassa .codice svg{width:100%;max-width:620px;height:auto}
 .cassa .codice.qr svg{max-width:300px}
 .cassa .cifre{color:#111;margin:0}
@@ -188,6 +189,31 @@ details.avanzate summary{font-weight:700;color:var(--azione);min-height:48px;dis
 .attesa{display:flex;align-items:center;gap:12px;font-weight:700;color:var(--secondario);padding:10px 0}
 .attesa::before{content:"";width:22px;height:22px;border-radius:50%;border:3px solid var(--bordo);border-top-color:var(--azione);animation:gira .8s linear infinite}
 @keyframes gira{to{transform:rotate(360deg)}}
+
+/* ---------- buoni ---------- */
+.avviso-buoni{display:flex;align-items:center;gap:12px;width:100%;margin-bottom:18px;padding:12px 14px;border-radius:16px;border:2px dashed #C9A227;background:var(--evidenza);text-align:left;color:var(--inchiostro)}
+.avviso-buoni svg{width:26px;height:26px;flex:none;color:#8A6D00}
+.avviso-buoni .t{flex:1;font-size:17px;line-height:1.3}
+.avviso-buoni b{font-size:18px}
+.avviso-buoni .fr{width:22px;height:22px;color:var(--secondario)}
+@media (prefers-color-scheme:dark){.avviso-buoni{border-color:#8A6D00}.avviso-buoni svg{color:#FFD54A}}
+.buono{display:flex;gap:12px;align-items:center;width:100%;padding:12px;border-radius:16px;border:2px dashed #C9A227;background:#FFFBEA;color:#17212B;text-align:left;margin-bottom:12px}
+.buono .tile{width:84px;flex:none}
+.buono .v{font-size:22px;font-weight:700;line-height:1.1}
+.buono .s{font-size:16px;color:#55606B}
+.buono .s.urgente{color:#B42318;font-weight:700}
+.buono-cassa{width:100%;max-width:620px;border:2px dashed #C9A227;background:#FFFBEA;border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:12px}
+.buono-cassa .tx{flex:1}
+.buono-cassa .v{font-size:20px;font-weight:700}
+.buono-cassa .s{font-size:15px;color:#55606B}
+.buono-cassa button{min-height:48px;padding:0 14px;border-radius:12px;border:2px solid #D3DAE0;background:#fff;font-weight:700;font-size:16px;color:#0B6E4F}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.chip{min-height:44px;padding:0 14px;border-radius:999px;border:2px solid var(--bordo);background:var(--carta);font-weight:700;font-size:16px}
+.chip.si{border-color:var(--azione);color:var(--azione)}
+.screen-buono{width:100%;max-height:260px;object-fit:contain;object-position:top;border-radius:14px;border:2px solid var(--bordo);background:#fff;margin-bottom:16px}
+.vedi-buono{display:flex;flex-direction:column;align-items:center;gap:14px}
+.vedi-buono img{max-width:100%;border-radius:12px}
+.vedi-buono .anteprima{width:100%}
 </style>
 </head>
 <body>
@@ -202,6 +228,7 @@ details.avanzate summary{font-weight:700;color:var(--azione);min-height:48px;dis
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
     <input id="cerca" type="search" placeholder="Cerca un negozio" autocomplete="off" aria-label="Cerca un negozio">
   </div>
+  <button class="avviso-buoni hidden" id="avvisoBuoni"></button>
   <button class="suggerita hidden" id="suggerita"></button>
   <div class="invito hidden" id="invitoPos">
     <p>Vuoi che l'app mostri da sola la carta del negozio in cui ti trovi?</p>
@@ -322,6 +349,9 @@ details.avanzate summary{font-weight:700;color:var(--azione);min-height:48px;dis
       <button class="opz" id="optPosizione" role="switch" aria-checked="false">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
         <div><b>Mostra prima la carta del negozio dove sei</b><span id="optPosTxt">Usa la posizione del telefono</span></div><i class="interruttore"></i></button>
+      <button class="opz" id="optBuoni">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/><path d="M14 6v12" stroke-dasharray="2 2.5"/></svg>
+        <div><b>Buoni sconto</b><span id="optBuoniTxt">Aggiungi i buoni dei negozi per non dimenticarli</span></div></button>
       <button class="opz" id="optOrdine">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h11M4 12h8M4 17h5M17 5v14m0 0-3-3m3 3 3-3"/></svg>
         <div><b>Ordine delle carte</b><span id="optOrdineTxt"></span></div></button>
@@ -349,6 +379,60 @@ details.avanzate summary{font-weight:700;color:var(--azione);min-height:48px;dis
     <div id="impElenco"></div>
   </div>
   <div class="fondo-pagina"><button class="btn primario" id="impSalva" disabled>Salva le carte</button></div>
+</section>
+
+
+<!-- ================= BUONI ================= -->
+<section class="pagina" id="pBuoni" aria-label="I tuoi buoni">
+  <div class="barra"><button class="indietro" data-indietro><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg>Indietro</button></div>
+  <div class="corpo">
+    <h2>I tuoi buoni</h2>
+    <p class="sotto" id="buoniSotto"></p>
+    <div id="buoniElenco"></div>
+  </div>
+  <div class="fondo-pagina"><button class="btn primario" id="buoniAggiungi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/><path d="M14 6v12" stroke-dasharray="2 2.5"/></svg>Aggiungi un buono</button></div>
+</section>
+
+<section class="pagina" id="pBuonoFoto" aria-label="Aggiungi un buono">
+  <div class="barra"><button class="indietro" data-indietro><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg>Indietro</button></div>
+  <div class="corpo">
+    <h2>Aggiungi un buono</h2>
+    <p class="sotto">Scegli lo screenshot o la foto del buono: leggo io sconto, scadenza e codice.</p>
+    <div class="stack">
+      <label class="btn primario" for="buonoFile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m3 16 5-5 4 4 3-3 6 6"/></svg>Scegli lo screenshot</label>
+      <button class="btn" id="buonoAMano">Lo scrivo io</button>
+    </div>
+    <p class="attesa hidden" id="buonoAttesa"></p>
+    <input type="file" id="buonoFile" accept="image/*" class="vh">
+  </div>
+</section>
+
+<section class="pagina" id="pBuono" aria-label="Controlla il buono">
+  <div class="barra"><button class="indietro" data-indietro><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg>Indietro</button></div>
+  <div class="corpo">
+    <h2 id="buonoTitolo">Controlla il buono</h2>
+    <p class="sotto" id="buonoNota"></p>
+    <img class="screen-buono hidden" id="buonoImg" alt="Il buono">
+    <div class="campo"><label>Negozio</label><button class="opz" id="buonoCarta" style="min-height:76px"></button></div>
+    <div class="campo"><label for="buonoValore">Sconto</label><input id="buonoValore" autocomplete="off" placeholder="Es. 20% oppure 10 €">
+      <div class="chips" id="chipsValore"></div></div>
+    <div class="campo"><label for="buonoScade">Valido fino al</label><input id="buonoScade" type="date">
+      <div class="chips" id="chipsScade"></div></div>
+    <details class="avanzate" id="buonoAvanzate"><summary>Codice del buono e note</summary>
+      <div class="campo"><label for="buonoCodice">Codice (se la cassa lo deve leggere)</label><input id="buonoCodice" autocomplete="off" autocapitalize="characters"></div>
+      <div class="campo"><label for="buonoNoteIn">Note</label><input id="buonoNoteIn" autocomplete="off" placeholder="Es. spesa minima 50 €"></div>
+    </details>
+  </div>
+  <div class="fondo-pagina stack">
+    <button class="btn primario" id="buonoSalva">Salva il buono</button>
+    <button class="btn pericolo hidden" id="buonoElimina">Elimina il buono</button>
+  </div>
+</section>
+
+<section class="pagina" id="pVediBuono" aria-label="Buono da mostrare" style="background:#fff;color:#111">
+  <div class="barra"><button class="indietro" data-indietro><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg>Indietro</button></div>
+  <div class="corpo vedi-buono" id="vediBuono"></div>
+  <div class="fondo-pagina stack"><button class="btn primario" id="vediUsato">L'ho usato</button></div>
 </section>
 
 <!-- ================= ALLA CASSA ================= -->
@@ -406,6 +490,11 @@ function chiedi(testo,si){return new Promise(res=>{$("dlgTesto").textContent=tes
 let carte={};
 function carica(){try{const o=JSON.parse(localStorage.getItem(LS)||"{}");if(o&&typeof o==="object")carte=o;}catch(e){}
   for(const c of Object.values(carte)) if(!c.storeId){ const s=trovaNegozio(c.name); if(s) c.storeId=s.id; } }
+function puliziaLuoghi(){
+  const tutte=Object.values(carte), pts=[]; for(const c of tutte) for(const p of (c.places||[])) pts.push({c:c.id,p});
+  const via=new Set(); for(const a of pts){ const ids=new Set(pts.filter(b=>dist(a.p,b.p)<150).map(b=>b.c)); if(ids.size>=3) via.add(a.p); }
+  if(via.size) for(const c of tutte) c.places=(c.places||[]).filter(p=>!via.has(p));
+}
 function salva(){try{localStorage.setItem(LS,JSON.stringify(carte));return true;}catch(e){toast("Memoria del telefono piena",4000);return false;}}
 let pref={ordine:"uso",posizione:false};
 try{Object.assign(pref,JSON.parse(localStorage.getItem("tessere.pref")||"{}"));}catch(e){}
@@ -424,8 +513,8 @@ function tile(c){
   const s=c.storeId&&STORE_BY_ID[c.storeId];
   if(c.photo){ t.classList.add("foto"); t.style.backgroundImage=`url(${c.photo})`; return t; }
   if(s&&s.logo){
-    t.style.background=s.bg||"#fff"; if(s.icon) t.classList.add("icona");
-    const img=new Image(); img.alt=""; img.decoding="async"; img.src="logos/"+s.logo; t.appendChild(img);
+    t.style.background=s.bg||"#fff";
+    const img=new Image(); img.alt=""; img.decoding="async"; img.src="tiles/"+s.logo; t.appendChild(img);
     img.onerror=()=>{ img.remove(); ini(t,c,s.color); };
     return t;
   }
@@ -476,9 +565,11 @@ function punteggioOra(c,now){const h=c.hist||[];if(h.length<2)return 0;const hN=
     s+=Math.exp(-(dh*dh)/4.5)*(day===dN?1:(we===weN?.5:.2))*Math.exp(-age/120);}return s;}
 function suggerimento(){
   const lista=Object.values(carte); if(!lista.length) return null;
-  if(pos){ let best=null,bd=Infinity; const lim=Math.max(250,Math.min(pos.acc||0,600));
-    for(const c of lista) for(const p of (c.places||[])){const d=dist(pos,p);if(d<bd){bd=d;best=c;}}
-    if(best&&bd<=lim) return {c:best,perche:"vicino"}; }
+  if(pos){ const lim=Math.max(200,Math.min(pos.acc||0,500)); const vicine=[];
+    for(const c of lista){ let peso=0; for(const p of (c.places||[])) if(dist(pos,p)<=lim) peso+=p.n||1; if(peso) vicine.push({c,peso}); }
+    vicine.sort((a,b)=>b.peso-a.peso);
+    // se qui hai usato più carte in modo simile (es. a casa), non indovinare
+    if(vicine.length===1 || (vicine.length>1 && vicine[0].peso>=2*vicine[1].peso && vicine[0].peso>=2)) return {c:vicine[0].c,perche:"vicino"}; }
   const now=new Date(); let best=null,bs=0; for(const c of lista){const s=punteggioOra(c,now);if(s>bs){bs=s;best=c;}}
   return bs>=1.2?{c:best,perche:"ora"}:null;
 }
@@ -489,12 +580,13 @@ function ordinate(){
   else l.sort((a,b)=>(b.uses||0)-(a.uses||0)||(b.lastUsed||0)-(a.lastUsed||0)||a.name.localeCompare(b.name,"it"));
   return l;
 }
-function voce(c,onClick){const b=document.createElement("button");b.className="voce";b.appendChild(tile(c));const n=document.createElement("span");n.className="nome";n.textContent=c.name;b.appendChild(n);b.onclick=onClick;return b;}
+function voce(c,onClick,conBollino){const b=document.createElement("button");b.className="voce";b.appendChild(conBollino?bollino(tile(c),c.id):tile(c));const n=document.createElement("span");n.className="nome";n.textContent=c.name;b.appendChild(n);b.onclick=onClick;return b;}
 function disegnaHome(){
   const tot=Object.keys(carte).length;
   $("vuoto").classList.toggle("hidden",tot>0);
   $("cercaBox").classList.toggle("hidden",tot<7);
   const g=$("griglia"); g.innerHTML="";
+  dipingiAvvisoBuoni();
   const sug=$("cerca").value?null:suggerimento(), sb=$("suggerita");
   if(sug){ sb.innerHTML=""; sb.appendChild(tile(sug.c)); const tx=document.createElement("div");
     tx.innerHTML=`<div class="t1"></div><div class="t2"></div><div class="t3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>Tocca per mostrarla</div>`;
@@ -504,7 +596,7 @@ function disegnaHome(){
   const usate=Object.values(carte).filter(c=>(c.uses||0)>0).length;
   $("invitoPos").classList.toggle("hidden", !(tot>=2 && usate>=1 && !pref.posizione && !pref.invitoVisto && window.isSecureContext && navigator.geolocation && !$("cerca").value));
   const l=ordinate();
-  for(const c of l) g.appendChild(voce(c,()=>mostra(c.id)));
+  for(const c of l) g.appendChild(voce(c,()=>mostra(c.id),true));
   if(tot && !l.length){ g.innerHTML=`<p style="grid-column:1/-1;color:var(--secondario)">Nessuna carta trovata.</p>`; }
 }
 $("cerca").addEventListener("input",disegnaHome);
@@ -512,14 +604,18 @@ $("invitoSi").onclick=()=>{ pref.invitoVisto=true; salvaPref(); chiediPosizione(
 $("invitoNo").onclick=()=>{ pref.invitoVisto=true; salvaPref(); disegnaHome(); toast("Puoi attivarla quando vuoi da Altro"); };
 
 /* ================= ALLA CASSA ================= */
-let mostrata=null, wake=null;
+let mostrata=null, wake=null, apertaAlle=0;
 async function mostra(id){
   const c=carte[id]; if(!c) return; mostrata=id;
   try{ const de=document.documentElement; if(!document.fullscreenElement&&de.requestFullscreen) de.requestFullscreen({navigationUI:"hide"}).catch(()=>{}); }catch(e){}
   dipingiCassa(c);
-  apri("cassa",()=>{ mostrata=null; try{wake&&wake.release();}catch(e){} wake=null; try{ if(document.fullscreenElement) document.exitFullscreen().catch(()=>{}); }catch(e){} disegnaHome(); });
+  apri("cassa",()=>{ const idc=mostrata;
+    // il luogo si impara solo se la carta è rimasta aperta abbastanza (alla cassa), non per una sbirciata
+    if(idc&&carte[idc]&&Date.now()-apertaAlle>=8000){ carte[idc]={...carte[idc],places:impara(carte[idc])}; salva(); }
+    mostrata=null; try{wake&&wake.release();}catch(e){} wake=null; try{ if(document.fullscreenElement) document.exitFullscreen().catch(()=>{}); }catch(e){} disegnaHome(); });
   try{ if(navigator.wakeLock) wake=await navigator.wakeLock.request("screen"); }catch(e){}
-  carte[id]={...c,uses:(c.uses||0)+1,lastUsed:Date.now(),hist:[...(c.hist||[]),Date.now()].slice(-40),places:impara(c)}; salva();
+  apertaAlle=Date.now();
+  carte[id]={...c,uses:(c.uses||0)+1,lastUsed:Date.now(),hist:[...(c.hist||[]),Date.now()].slice(-40)}; salva();
 }
 function dipingiCassa(c){
   const su=$("cassaSu"); su.innerHTML=""; su.appendChild(tile(c));
@@ -534,7 +630,10 @@ function dipingiCassa(c){
   alt.onclick=()=>{ let nuovo="QR"; if(isQR){ nuovo=formatoAuto(c.number); if(nuovo==="QR") nuovo="CODE128"; }
     carte[c.id]={...carte[c.id],format:nuovo}; salva(); dipingiCassa(carte[c.id]); toast(nuovo==="QR"?"Ora la carta si apre con il QR code":"Ora la carta si apre con il codice a barre"); };
   box.appendChild(alt);
+  for(const b of attivi(c.id)){ const bc=document.createElement("div"); bc.className="buono-cassa"; bc.innerHTML=`<div class="tx"><div class="v"></div><div class="s"></div></div><button>Vedi</button>`;
+    bc.querySelector(".v").textContent="Buono "+(b.value||""); bc.querySelector(".s").textContent=scadenzaTesto(b.expires)+(b.note?" · "+b.note:""); bc.querySelector("button").onclick=()=>vediBuono(b.id); box.appendChild(bc); }
   const k=document.createElement("div"); k.className="consiglio"; k.textContent="Alza la luminosità dello schermo se la cassa fa fatica a leggerlo."; box.appendChild(k);
+  const ab=document.createElement("button"); ab.className="alterna"; ab.style.borderStyle="dashed"; ab.textContent="+ Aggiungi un buono di "+c.name; ab.onclick=()=>nuovoBuono(c.id); box.appendChild(ab);
 }
 $("cassaChiudi").onclick=indietro;
 // uscire dallo schermo intero col tasto indietro chiude anche la carta (un solo tocco)
@@ -546,6 +645,12 @@ let modoScelta="nuova";   // "nuova" | "modifica" | "import"
 let sceltaCallback=null;
 function elencoNegozi(){
   const q=norm($("negCerca").value), box=$("negElenco"); box.innerHTML="";
+  if(modoScelta==="buono"){ // si sceglie tra le tue carte
+    const g=document.createElement("div"); g.className="negozi"; g.style.marginTop="14px";
+    const l=Object.values(carte).filter(c=>!q||norm(c.name).includes(q)).sort((a,b)=>a.name.localeCompare(b.name,"it"));
+    for(const c of l) g.appendChild(voce(c,()=>{ const cb=sceltaCallback; indietro(); setTimeout(()=>cb&&cb(c.id),60); }));
+    box.appendChild(g); $("negAltro").parentElement.classList.add("hidden"); return; }
+  $("negAltro").parentElement.classList.remove("hidden");
   const usati=new Set(Object.values(carte).map(c=>c.storeId).filter(Boolean));
   const match=s=>!q||norm(s.name).includes(q)||(s.aliases||[]).some(a=>norm(a).includes(q));
   const gruppi=[["Supermercati","spesa"],["Casa e bellezza","casa e bellezza"],["Negozi","negozi"],["Carburante, viaggi e ristoranti","carburante e viaggi"]];
@@ -563,7 +668,7 @@ function elencoNegozi(){
 }
 function apriSceltaNegozio(modo,cb){
   modoScelta=modo; sceltaCallback=cb||null; $("negCerca").value="";
-  $("negTitolo").textContent=modo==="nuova"?"Di quale negozio è la carta?":"Scegli il negozio";
+  $("negTitolo").textContent=modo==="nuova"?"Di quale negozio è la carta?":(modo==="buono"?"Di quale negozio è il buono?":"Scegli il negozio");
   elencoNegozi(); apri("pNegozio");
 }
 $("negCerca").addEventListener("input",elencoNegozi);
@@ -665,6 +770,7 @@ $("modElimina").onclick=async()=>{ const c=carte[inModifica.id]; if(!(await chie
 
 /* ================= ALTRO ================= */
 function dipingiAltro(){
+  const na=attivi().length; $("optBuoniTxt").textContent=na?(na===1?"Hai un buono da usare":`Hai ${na} buoni da usare`):"Aggiungi i buoni dei negozi per non dimenticarli";
   $("optPosizione").setAttribute("aria-checked",String(!!pref.posizione));
   $("optPosTxt").textContent=pref.posizione?(pos?"Attiva":"Attiva, in attesa del segnale"):"Usa la posizione del telefono";
   $("optOrdineTxt").textContent=pref.ordine==="az"?"In ordine alfabetico. Tocca per mettere prima le più usate":"Prima le più usate. Tocca per l'ordine alfabetico";
@@ -673,7 +779,7 @@ $("apriAltro").onclick=()=>{ dipingiAltro(); apri("pAltro"); };
 $("optOrdine").onclick=()=>{ pref.ordine=pref.ordine==="az"?"uso":"az"; salvaPref(); dipingiAltro(); disegnaHome(); };
 $("optPosizione").onclick=()=>{ if(pref.posizione){ pref.posizione=false; pos=null; salvaPref(); dipingiAltro(); disegnaHome(); } else chiediPosizione(true); };
 $("optSalvaCopia").onclick=()=>{
-  const dati=JSON.stringify({app:"tessere",v:2,cards:Object.values(carte)},null,1);
+  const dati=JSON.stringify({app:"tessere",v:3,cards:Object.values(carte),coupons:buoni},null,1);
   const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([dati],{type:"application/json"})); a.download="carte-"+new Date().toISOString().slice(0,10)+".json";
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); toast("Copia salvata nei download");
 };
@@ -685,6 +791,7 @@ $("copiaFile").addEventListener("change",async e=>{ const f=e.target.files[0]; e
   for(const c of l){ const id=String(c.id||uid()); const s=c.storeId&&STORE_BY_ID[c.storeId]?c.storeId:(trovaNegozio(c.name)||{}).id||null;
     carte[id]={id,storeId:s,name:String(c.name),number:String(c.number),format:c.format||"auto",color:c.color||"",note:c.note||"",photo:typeof c.photo==="string"&&c.photo.startsWith("data:image/")?c.photo:"",
       uses:+c.uses||0,lastUsed:+c.lastUsed||0,hist:Array.isArray(c.hist)?c.hist.filter(Number.isFinite).slice(-40):[],places:Array.isArray(c.places)?c.places.filter(p=>p&&Number.isFinite(p.lat)).slice(0,8):[],created:+c.created||Date.now()}; }
+  if(o&&Array.isArray(o.coupons)){ const ids=new Set(buoni.map(b=>b.id)); for(const b of o.coupons) if(b&&b.id&&!ids.has(b.id)&&b.cardId) buoni.push(b); salvaBuoni(); }
   salva(); torna(0); setTimeout(()=>{ disegnaHome(); toast(`Recuperate ${l.length} carte`); },80);
 });
 
@@ -736,6 +843,158 @@ $("impSalva").onclick=()=>{
   if(!salva()) return; importa=[]; torna(0); setTimeout(()=>{ disegnaHome(); toast(`Salvate ${l.length} carte`); },80);
 };
 
+/* ================= BUONI ================= */
+let buoni=[];
+function caricaBuoni(){ try{ const a=JSON.parse(localStorage.getItem("tessere.buoni")||"[]"); if(Array.isArray(a)) buoni=a; }catch(e){} }
+function salvaBuoni(){ try{ localStorage.setItem("tessere.buoni",JSON.stringify(buoni)); return true; }catch(e){ toast("Memoria del telefono piena",4000); return false; } }
+const oggiISO=()=>{ const d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10); };
+const giorniA=iso=>{ if(!iso) return Infinity; const a=new Date(oggiISO()+"T00:00:00"), b=new Date(iso+"T00:00:00"); return Math.round((b-a)/864e5); };
+function attivi(cardId){ return buoni.filter(b=>!b.used && giorniA(b.expires)>=0 && (!cardId||b.cardId===cardId) && carte[b.cardId]).sort((a,b)=>giorniA(a.expires)-giorniA(b.expires)); }
+const MESI=["gennaio","febbraio","marzo","aprile","maggio","giugno","luglio","agosto","settembre","ottobre","novembre","dicembre"];
+function dataBreve(iso){ if(!iso) return ""; const d=new Date(iso+"T00:00:00"); return d.getDate()+" "+MESI[d.getMonth()].slice(0,3); }
+function scadenzaTesto(iso){ const g=giorniA(iso); if(g===Infinity) return "Senza scadenza"; if(g===0) return "Scade oggi"; if(g===1) return "Scade domani"; if(g<=7) return `Scade tra ${g} giorni`; return "Valido fino al "+dataBreve(iso); }
+function valoreTesto(b){ return b.value?("Sconto "+b.value):"Buono"; }
+
+// avviso discreto in home + bollino sulle carte
+function dipingiAvvisoBuoni(){
+  const a=attivi(), el=$("avvisoBuoni");
+  if(!a.length||$("cerca").value){ el.classList.add("hidden"); return; }
+  const primo=a[0], c=carte[primo.cardId], urg=giorniA(primo.expires)<=3;
+  el.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/><path d="M14 6v12" stroke-dasharray="2 2.5"/></svg><div class="t"></div><svg class="fr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>`;
+  const t=el.querySelector(".t");
+  const b=document.createElement("b"); b.textContent=a.length===1?`Hai un buono da usare`:`Hai ${a.length} buoni da usare`; t.appendChild(b); t.appendChild(document.createElement("br"));
+  const sp=document.createElement("span"); sp.textContent=`${c.name}: ${primo.value||"buono"} · ${scadenzaTesto(primo.expires).toLowerCase()}`; if(urg) sp.style.color="var(--pericolo)"; t.appendChild(sp);
+  el.onclick=()=>a.length===1?mostra(primo.cardId):apriBuoni();
+  el.classList.remove("hidden");
+}
+function bollino(t,cardId){ const n=attivi(cardId).length; if(!n) return t; const s=document.createElement("span"); s.className="bollino"; s.textContent=n===1?"Buono":n+" buoni"; t.appendChild(s); return t; }
+
+// elenco
+function apriBuoni(){ dipingiBuoni(); apri("pBuoni"); }
+function dipingiBuoni(){
+  const a=attivi(), box=$("buoniElenco"); box.innerHTML="";
+  $("buoniSotto").textContent=a.length?"Toccane uno per vederlo o segnarlo come usato.":"Non hai buoni da usare. Aggiungine uno da uno screenshot: leggo io i dati.";
+  for(const b of a){ const c=carte[b.cardId]; const el=document.createElement("button"); el.className="buono"; el.appendChild(tile(c));
+    const d=document.createElement("div"); d.innerHTML=`<div class="v"></div><div class="s"></div><div class="s"></div>`;
+    d.children[0].textContent=b.value||"Buono"; d.children[1].textContent=c.name; d.children[2].textContent=scadenzaTesto(b.expires); if(giorniA(b.expires)<=3) d.children[2].classList.add("urgente");
+    el.appendChild(d); el.onclick=()=>vediBuono(b.id); box.appendChild(el); }
+}
+$("optBuoni").onclick=apriBuoni;
+$("buoniAggiungi").onclick=()=>nuovoBuono(null);
+
+// mostra un buono (con il suo codice se c'è)
+function vediBuono(id){
+  const b=buoni.find(x=>x.id===id); if(!b) return; const c=carte[b.cardId]; const box=$("vediBuono"); box.innerHTML="";
+  const t=tile(c); t.style.width="120px"; box.appendChild(t);
+  const v=document.createElement("div"); v.className="cifre"; v.style.margin="0"; v.textContent=(b.value||"Buono")+" · "+c.name; box.appendChild(v);
+  const s=document.createElement("div"); s.className="sotto"; s.style.color="#55606B"; s.textContent=scadenzaTesto(b.expires)+(b.note?" · "+b.note:""); box.appendChild(s);
+  if(b.code){ const an=document.createElement("div"); an.className="anteprima"; const svg=disegna(b.code,b.format&&b.format!=="auto"?b.format:formatoAuto(b.code),110)||disegna(b.code,"CODE128",110); if(svg) an.appendChild(svg); box.appendChild(an);
+    const n=document.createElement("div"); n.className="cifre"; n.textContent=b.code; box.appendChild(n); }
+  else { const n=document.createElement("p"); n.style.textAlign="center"; n.textContent="Alla cassa mostra la carta: il buono è collegato alla tua tessera."; box.appendChild(n); }
+  if(b.image){ const im=new Image(); im.src=b.image; im.alt="Il buono"; box.appendChild(im); }
+  const m=document.createElement("button"); m.className="btn"; m.textContent="Modifica il buono"; m.onclick=()=>modificaBuono(b.id); box.appendChild(m);
+  $("vediUsato").onclick=async()=>{ if(!(await chiedi("Hai usato questo buono?","Sì, l'ho usato"))) return; b.used=Date.now(); salvaBuoni(); indietro(); setTimeout(()=>{ aggiornaDopoBuoni(); toast("Buono segnato come usato"); },60); };
+  apri("pVediBuono");
+}
+function aggiornaDopoBuoni(){ disegnaHome(); if(mostrata&&carte[mostrata]) dipingiCassa(carte[mostrata]); if($("pBuoni").classList.contains("aperta")) dipingiBuoni(); }
+
+// ---- aggiunta: screenshot -> lettura automatica -> conferma ----
+let bozzaBuono=null;
+function nuovoBuono(cardId){ bozzaBuono={id:uid(),cardId:cardId||null,value:"",expires:"",code:"",format:"auto",note:"",image:"",used:0,created:Date.now()};
+  $("buonoAttesa").classList.add("hidden"); apri("pBuonoFoto"); }
+$("buonoAMano").onclick=()=>apriFormBuono("Scrivi i dati del buono.");
+$("buonoFile").addEventListener("change",async e=>{ const f=e.target.files[0]; e.target.value=""; if(!f) return;
+  const w=$("buonoAttesa"); w.classList.remove("hidden"); w.textContent="Leggo il buono…";
+  try{
+    const [{res,im}, testo] = await Promise.all([ leggiFile(f), ocr(f,p=>{ w.textContent=p; }) ]);
+    if(im){ bozzaBuono.image=ridimensiona(im.img,720,.62); URL.revokeObjectURL(im.url); }
+    const info=analizza(testo||"");
+    if(res && !carteNumeri().has(String(res.value))){ bozzaBuono.code=String(res.value); bozzaBuono.format=res.format; }
+    if(info.value) bozzaBuono.value=info.value; if(info.expires) bozzaBuono.expires=info.expires; if(info.code&&!bozzaBuono.code) bozzaBuono.code=info.code;
+    if(!bozzaBuono.cardId&&info.cardId) bozzaBuono.cardId=info.cardId;
+    const trovati=[info.value&&"lo sconto",info.expires&&"la scadenza",bozzaBuono.code&&"il codice"].filter(Boolean);
+    apriFormBuono(trovati.length?`Ho letto ${trovati.join(", ").replace(/, ([^,]*)$/," e $1")}. Controlla che sia giusto.`:"Non sono riuscito a leggere i dati: completali tu, bastano due tocchi.");
+  }catch(err){ apriFormBuono("Non sono riuscito a leggere l'immagine: completa tu i dati."); }
+  w.classList.add("hidden");
+});
+function carteNumeri(){ return new Set(Object.values(carte).map(c=>String(c.number))); }
+function ridimensiona(img,lato,q){ const s=Math.min(1,lato/Math.max(img.naturalWidth,img.naturalHeight)); const c=document.createElement("canvas"); c.width=Math.round(img.naturalWidth*s); c.height=Math.round(img.naturalHeight*s); c.getContext("2d").drawImage(img,0,0,c.width,c.height); return c.toDataURL("image/jpeg",q); }
+
+function modificaBuono(id){ const b=buoni.find(x=>x.id===id); if(!b) return; bozzaBuono={...b}; apriFormBuono(""); }
+function apriFormBuono(nota){
+  const b=bozzaBuono; const esiste=buoni.some(x=>x.id===b.id);
+  $("buonoTitolo").textContent=esiste?"Modifica il buono":"Controlla il buono"; $("buonoNota").textContent=nota||"";
+  $("buonoImg").classList.toggle("hidden",!b.image); if(b.image) $("buonoImg").src=b.image;
+  dipingiCartaBuono(); $("buonoValore").value=b.value||""; $("buonoScade").value=b.expires||""; $("buonoCodice").value=b.code||""; $("buonoNoteIn").value=b.note||"";
+  $("buonoAvanzate").open=!!b.code; $("buonoElimina").classList.toggle("hidden",!esiste);
+  dipingiChips(); apri("pBuono");
+}
+function dipingiCartaBuono(){ const btn=$("buonoCarta"); btn.innerHTML=""; const c=bozzaBuono.cardId&&carte[bozzaBuono.cardId];
+  if(c){ const t=tile(c); t.style.width="92px"; t.style.flex="none"; btn.appendChild(t); const d=document.createElement("div"); d.innerHTML="<b></b><span>Tocca per cambiare</span>"; d.querySelector("b").textContent=c.name; btn.appendChild(d); btn.style.borderColor=""; }
+  else { const d=document.createElement("div"); d.innerHTML="<b>Scegli la carta</b><span>Di quale negozio è il buono?</span>"; btn.appendChild(d); btn.style.borderColor="var(--azione)"; } }
+$("buonoCarta").onclick=()=>scegliCarta(id=>{ bozzaBuono.cardId=id; dipingiCartaBuono(); });
+function dipingiChips(){
+  const cv=$("chipsValore"); cv.innerHTML=""; for(const v of ["10%","20%","30%","5 €","10 €"]){ const b=document.createElement("button"); b.className="chip"+($("buonoValore").value===v?" si":""); b.textContent=v; b.onclick=()=>{ $("buonoValore").value=v; dipingiChips(); }; cv.appendChild(b); }
+  const cs=$("chipsScade"); cs.innerHTML=""; const d=new Date(); const iso=x=>new Date(x.getTime()-x.getTimezoneOffset()*6e4).toISOString().slice(0,10);
+  const opz=[["Tra 7 giorni",iso(new Date(d.getFullYear(),d.getMonth(),d.getDate()+7))],["Metà mese",iso(new Date(d.getFullYear(),d.getMonth()+(d.getDate()>=15?1:0),15))],["Fine mese",iso(new Date(d.getFullYear(),d.getMonth()+1,0))],["Nessuna","" ]];
+  for(const [t,v] of opz){ const b=document.createElement("button"); b.className="chip"+($("buonoScade").value===v&&(v||$("buonoScade").value==="")?" si":""); b.textContent=t; b.onclick=()=>{ $("buonoScade").value=v; dipingiChips(); }; cs.appendChild(b); }
+}
+$("buonoValore").addEventListener("input",dipingiChips); $("buonoScade").addEventListener("change",dipingiChips);
+$("buonoSalva").onclick=()=>{
+  const b=bozzaBuono; if(!b.cardId){ toast("Scegli di quale negozio è il buono"); $("buonoCarta").focus(); return; }
+  b.value=$("buonoValore").value.trim(); b.expires=$("buonoScade").value; b.code=$("buonoCodice").value.replace(/\s+/g,"").trim(); b.note=$("buonoNoteIn").value.trim();
+  const i=buoni.findIndex(x=>x.id===b.id); if(i>=0) buoni[i]=b; else buoni.push(b);
+  if(!salvaBuoni()) return;
+  // chiude le pagine del buono e torna dove eri
+  let n=0; for(let k=pila.length-1;k>=0&&["pBuono","pBuonoFoto","pVediBuono"].includes(pila[k].id);k--) n++;
+  history.go(-n); setTimeout(()=>{ aggiornaDopoBuoni(); toast(i>=0?"Buono aggiornato":"Buono salvato. Lo vedrai quando apri la carta"); },80);
+};
+$("buonoElimina").onclick=async()=>{ if(!(await chiedi("Eliminare questo buono?","Sì, elimina"))) return; buoni=buoni.filter(x=>x.id!==bozzaBuono.id); salvaBuoni();
+  let n=0; for(let k=pila.length-1;k>=0&&["pBuono","pBuonoFoto","pVediBuono"].includes(pila[k].id);k--) n++; history.go(-n); setTimeout(()=>{ aggiornaDopoBuoni(); toast("Buono eliminato"); },80); };
+
+// scelta di una delle tue carte (per collegare il buono)
+function scegliCarta(cb){ apriSceltaNegozio("buono",cb); }
+
+// ---- lettura del testo (OCR, caricato solo quando serve) ----
+let ocrW=null;
+function caricaScript(src){ return new Promise((ok,ko)=>{ if(document.querySelector(`script[src="${src}"]`)) return ok(); const s=document.createElement("script"); s.src=src; s.onload=ok; s.onerror=ko; document.head.appendChild(s); }); }
+async function ocr(file,progresso){
+  try{
+    if(!ocrW){ progresso("Preparo la lettura del testo (solo la prima volta)…"); await caricaScript("ocr/tesseract.min.js"); const base=new URL("ocr/",location.href).href;
+      ocrW=await Tesseract.createWorker("ita",1,{workerPath:base+"worker.min.js",corePath:base,langPath:base,gzip:true,
+        logger:m=>{ if(m.status==="recognizing text") progresso(`Leggo il buono… ${Math.round(m.progress*100)}%`); }}); }
+    progresso("Leggo il buono…");
+    const r=await ocrW.recognize(file); return r.data.text||"";
+  }catch(e){ return ""; }
+}
+function analizza(t){
+  const testo=t.replace(/\s+/g," "), low=testo.toLowerCase(), out={};
+  // sconto
+  const pc=[...low.matchAll(/(\d{1,2})\s?%/g)].map(m=>+m[1]).filter(v=>v>0&&v<=90);
+  const eu=[...low.matchAll(/(?:€\s?(\d{1,3}(?:[.,]\d{2})?))|(?:(\d{1,3}(?:[.,]\d{2})?)\s?(?:€|euro\b))/g)].map(m=>(m[1]||m[2]).replace(".",",")).filter(v=>parseFloat(v.replace(",","."))>0);
+  if(pc.length) out.value=Math.max(...pc)+"%"; else if(eu.length){ const v=eu[0].replace(/,00$/,""); out.value=v+" €"; }
+  // scadenza: date numeriche o scritte, preferendo quella dopo "fino al", "entro", "scad", "valid"
+  const date=[]; const anno=new Date().getFullYear();
+  const push=(g,m,a,i)=>{ a=a?(+a<100?2000+ +a:+a):null; const d=new Date(a||anno,m-1,g); if(isNaN(d)||d.getMonth()!==m-1) return; if(!a&&d<new Date(Date.now()-864e5*30)) d.setFullYear(anno+1); date.push({d,i}); };
+  for(const m of low.matchAll(/\b(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})\b/g)) push(+m[1],+m[2],m[3],m.index);
+  for(const m of low.matchAll(/\b(\d{1,2})\s(gen|feb|mar|apr|mag|giu|lug|ago|set|ott|nov|dic)[a-z]*\.?(?:\s(\d{4}))?/g)) push(+m[1],["gen","feb","mar","apr","mag","giu","lug","ago","set","ott","nov","dic"].indexOf(m[2])+1,m[3],m.index);
+  if(date.length){
+    const chiavi=[...low.matchAll(/(fino al|fino a|entro il|entro|scade|scadenza|valid[oaie]|al\b)/g)].map(m=>m.index);
+    const future=date.filter(x=>x.d>=new Date(new Date().toDateString()));
+    const pool=future.length?future:date;
+    let best=pool.sort((a,b)=>b.d-a.d)[0];
+    const vicino=pool.find(x=>chiavi.some(k=>x.i>k&&x.i-k<40)); if(vicino) best=vicino;
+    out.expires=new Date(best.d.getTime()-best.d.getTimezoneOffset()*6e4).toISOString().slice(0,10);
+  }
+  // codice scritto
+  const cod=testo.match(/(?:codice|code|coupon)\s*(?:sconto|promo)?\s*[:\-]?\s*([A-Z0-9][A-Z0-9\-]{4,20})/i); if(cod) out.code=cod[1].toUpperCase();
+  // negozio: cerca i nomi delle tue carte nel testo
+  const n=" "+norm(testo)+" ";
+  const cand=Object.values(carte).map(c=>{ const s=c.storeId&&STORE_BY_ID[c.storeId]; const nomi=[c.name,...(s?[s.name,...(s.aliases||[])]:[])].map(norm).filter(x=>x.length>=3); return {c,ok:nomi.some(x=>n.includes(" "+x+" ")||n.includes(" "+x))}; }).filter(x=>x.ok);
+  if(cand.length) out.cardId=cand[0].c.id;
+  return out;
+}
+
 /* ================= POSIZIONE ================= */
 let pos=null;
 function dist(a,b){const R=6371e3,t=Math.PI/180,dl=(b.lat-a.lat)*t,dg=(b.lng-a.lng)*t;const h=Math.sin(dl/2)**2+Math.cos(a.lat*t)*Math.cos(b.lat*t)*Math.sin(dg/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
@@ -758,7 +1017,7 @@ function impara(c){
 document.addEventListener("visibilitychange",()=>{ if(document.hidden) return; if(pref.posizione) chiediPosizione(false); disegnaHome(); });
 
 /* ================= avvio ================= */
-carica(); salva(); disegnaHome();
+carica(); caricaBuoni(); puliziaLuoghi(); salva(); disegnaHome();
 if(pref.posizione) chiediPosizione(false);
 if(location.hash==="#aggiungi"){ history.replaceState({n:0},"",location.pathname); setTimeout(()=>apriSceltaNegozio("nuova"),100); }
 if("serviceWorker" in navigator && location.protocol==="https:") navigator.serviceWorker.register("sw.js").catch(()=>{});
