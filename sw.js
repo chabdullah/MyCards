@@ -1,15 +1,79 @@
-// Tessere: offline-first. App shell in cache; loghi messi in cache al primo caricamento.
-const SHELL = "tessere-shell-v1", ICONS = "tessere-icons-v1";
-const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
+// Le mie carte: funziona anche senza internet.
+const VER = "v2-1";
+const SHELL = "carte-" + VER;
+const FILES = [
+"./",
+"./index.html",
+"./manifest.webmanifest",
+"./icon-192.png",
+"./icon-512.png",
+"./stores.js",
+"./vendor/JsBarcode.all.min.js",
+"./vendor/qrcode.js",
+"./vendor/zxing-reader.js",
+"./vendor/zxing_reader.wasm",
+"./fonts/atkinson-400.woff2",
+"./fonts/atkinson-700.woff2",
+"./logos/aldi.png",
+"./logos/arcaplanet.png",
+"./logos/autogrill.png",
+"./logos/basko.png",
+"./logos/burgerking.png",
+"./logos/calzedonia.png",
+"./logos/carrefour.png",
+"./logos/coin.png",
+"./logos/conad.png",
+"./logos/coop.png",
+"./logos/crai.png",
+"./logos/decathlon.png",
+"./logos/despar.png",
+"./logos/douglas.png",
+"./logos/esselunga.png",
+"./logos/esso.png",
+"./logos/euronics.png",
+"./logos/eurospin.png",
+"./logos/expert.png",
+"./logos/famila.png",
+"./logos/feltrinelli.png",
+"./logos/gamestop.png",
+"./logos/gigante.png",
+"./logos/hm.png",
+"./logos/ikea.png",
+"./logos/iper.png",
+"./logos/iperal.png",
+"./logos/isoladeitesori.png",
+"./logos/kasanova.png",
+"./logos/leroymerlin.png",
+"./logos/lidl.png",
+"./logos/maisonsdumonde.png",
+"./logos/mcdonalds.png",
+"./logos/md.png",
+"./logos/mediaworld.png",
+"./logos/mondadori.png",
+"./logos/obi.png",
+"./logos/ovs.png",
+"./logos/penny.png",
+"./logos/pittarello.png",
+"./logos/q8.png",
+"./logos/sephora.png",
+"./logos/tezenis.png",
+"./logos/tigota.png",
+"./logos/tigros.png",
+"./logos/trenitalia.png",
+"./logos/unieuro.png",
+"./logos/yvesrocher.png",
+"./logos/zara.png"
+];
 self.addEventListener("install", e => { e.waitUntil(caches.open(SHELL).then(c => c.addAll(FILES))); self.skipWaiting(); });
-self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== SHELL && k !== ICONS).map(k => caches.delete(k))))); self.clients.claim(); });
+self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== SHELL).map(k => caches.delete(k))))); self.clients.claim(); });
 self.addEventListener("fetch", e => {
   const req = e.request; if (req.method !== "GET") return;
-  const url = new URL(req.url);
-  if (url.origin === location.origin) {
-    // rete prima (aggiornamenti), cache se offline
-    e.respondWith(fetch(req).then(r => { const cp = r.clone(); caches.open(SHELL).then(c => c.put(req, cp)); return r; }).catch(() => caches.match(req, { ignoreSearch: true }).then(r => r || caches.match("./index.html"))));
-  } else if (/google\.com\/s2\/favicons|icons\.duckduckgo\.com/.test(url.href)) {
-    e.respondWith(caches.open(ICONS).then(c => c.match(req).then(hit => hit || fetch(req).then(r => { c.put(req, r.clone()); return r; }))));
+  const url = new URL(req.url); if (url.origin !== location.origin) return;
+  // pagina: rete prima (così gli aggiornamenti arrivano), cache se offline
+  if (req.mode === "navigate") {
+    e.respondWith(fetch(req).then(r => { const cp = r.clone(); caches.open(SHELL).then(c => c.put("./index.html", cp)); return r; }).catch(() => caches.match("./index.html")));
+    return;
   }
+  // tutto il resto: cache prima
+  e.respondWith(caches.match(req, { ignoreSearch: true }).then(hit => hit || fetch(req).then(r => { const cp = r.clone(); caches.open(SHELL).then(c => c.put(req, cp)); return r; })));
 });

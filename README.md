@@ -1,11 +1,15 @@
-# Tessere
+# Le mie carte
 
-Wallet personale per le carte fedeltà: niente pubblicità, funziona offline, si installa come app.
+Le carte fedeltà sul telefono, senza pubblicità. Pensata per essere semplice anche per chi non è pratico.
 
-- Scansione dal vivo con la fotocamera, da foto o da tanti screenshot insieme
-- Codice a schermo intero alla cassa (EAN-13/8, UPC, Code 128/39, ITF, Codabar, QR)
-- Logo del negozio automatico, o foto della carta
-- "Qui vicino": impara dove usi ogni carta e la mette in cima quando ci torni
-- Dati salvati solo nel browser; backup su file
+- Aggiunta guidata: scegli il negozio → inquadra il codice → controlla e salva
+- 49 loghi di negozi italiani già inclusi (funzionano anche offline)
+- Alla cassa: codice grande a schermo intero, schermo sempre acceso
+- "Sei vicino a…": impara dove usi ogni carta e la propone quando ci torni
+- Importa tante carte insieme dagli screenshot (es. da Klarna)
+- Copia di sicurezza su file per cambiare telefono
+- Il tasto indietro di Android torna alla schermata precedente
 
-Pubblicata con GitHub Pages. Su Android: apri il link in Chrome › menu › *Installa app*.
+Online: https://chabdullah.github.io/MyCards/ — in Chrome: menu › *Installa app*.
+
+I loghi appartengono ai rispettivi marchi e sono usati solo per riconoscere il negozio della carta.
