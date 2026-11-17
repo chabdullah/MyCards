@@ -605,9 +605,8 @@ $("copiaNo").onclick=()=>{ pref.copiaRimandata=Date.now(); salvaPref(); disegnaH
 let mostrata=null, wake=null, apertaAlle=0;
 async function mostra(id){
   const c=carte[id]; if(!c) return; mostrata=id;
-  try{ const de=document.documentElement; if(!document.fullscreenElement&&de.requestFullscreen) de.requestFullscreen({navigationUI:"hide"}).catch(()=>{}); }catch(e){}
   dipingiCassa(c);
-  apri("cassa",()=>{ mostrata=null;  try{wake&&wake.release();}catch(e){} wake=null; try{ if(document.fullscreenElement) document.exitFullscreen().catch(()=>{}); }catch(e){} disegnaHome(); });
+  apri("cassa",()=>{ mostrata=null;  try{wake&&wake.release();}catch(e){} wake=null; disegnaHome(); });
   try{ if(navigator.wakeLock) wake=await navigator.wakeLock.request("screen"); wake.addEventListener("release",()=>{ wake=null; }); }catch(e){}
   carte[id]={...c,uses:(c.uses||0)+1,lastUsed:Date.now()}; salva();
 }
@@ -630,8 +629,7 @@ function dipingiCassa(c){
   const ab=document.createElement("button"); ab.className="alterna"; ab.style.borderStyle="dashed"; ab.textContent="+ Aggiungi un buono di "+c.name; ab.onclick=()=>nuovoBuono(c.id); box.appendChild(ab);
 }
 $("cassaChiudi").onclick=indietro;
-// uscire dallo schermo intero col tasto indietro chiude anche la carta (un solo tocco)
-document.addEventListener("fullscreenchange",()=>{ if(!document.fullscreenElement && mostrata && pila.length && pila[pila.length-1].id==="cassa") indietro(); });
+
 
 /* ================= AGGIUNTA: 1. negozio ================= */
 let bozza=null;           // {storeId,name,number,format}

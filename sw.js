@@ -1,5 +1,5 @@
 // Le mie carte: funziona anche senza internet.
-const VER = "v7-1";
+const VER = "v7-2";
 const SHELL = "carte-" + VER;
 const FILES = [
 "./",
